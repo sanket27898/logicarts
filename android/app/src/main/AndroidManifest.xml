@@ -3,6 +3,9 @@
         android:label="logicarts"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <meta-data android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyAsc1va7mcCU4V8d1iV-1EFpjDRaEslV2s"/>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
