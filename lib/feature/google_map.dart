@@ -15,13 +15,7 @@ class _GoogleMapScreenState extends State<GoogleMapScreen> {
   );
 
   late GoogleMapController _controller;
-  List<Marker>? markers;
-
-  @override
-  void initState() {
-    initialMarker();
-    super.initState();
-  }
+  bool _showAllMarkers = true;
 
   List<Map<String, dynamic>> locationList = [
     {
@@ -65,17 +59,62 @@ class _GoogleMapScreenState extends State<GoogleMapScreen> {
       "coordinates": {"latitude": -22.2875, "longitude": -109.5374}
     }
   ];
-  late Iterable _markers;
 
-  initialMarker() {
-    _markers = Iterable.generate(locationList.length ?? 0, (index) {
+  Set<Marker> _allMarkers = {};
+  Set<Marker> _singleMarker = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeMarkers();
+  }
+
+  void _initializeMarkers() {
+    _allMarkers = locationList.map((location) {
       return Marker(
+        markerId: MarkerId(location['name']),
+        position: LatLng(
+          location['coordinates']['latitude'],
+          location['coordinates']['longitude'],
+        ),
+        infoWindow: InfoWindow(title: location["name"]),
+      );
+    }).toSet();
+  }
+
+  void _add(int index) {
+    setState(() {
+      _showAllMarkers = false;
+      _singleMarker = {
+        Marker(
           markerId: MarkerId(locationList[index]['name']),
           position: LatLng(
             locationList[index]['coordinates']['latitude'],
             locationList[index]['coordinates']['longitude'],
           ),
-          infoWindow: InfoWindow(title: locationList[index]["name"]));
+          infoWindow: InfoWindow(title: locationList[index]["name"]),
+        ),
+      };
+      _controller.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: LatLng(
+              locationList[index]['coordinates']['latitude'],
+              locationList[index]['coordinates']['longitude'],
+            ),
+            zoom: 10,
+          ),
+        ),
+      );
+    });
+  }
+
+  void _resetMarkers() {
+    setState(() {
+      _showAllMarkers = true;
+      _controller.animateCamera(
+        CameraUpdate.newCameraPosition(_initialLocation),
+      );
     });
   }
 
@@ -83,7 +122,7 @@ class _GoogleMapScreenState extends State<GoogleMapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Google bar'),
+        title: const Text('Google Map'),
       ),
       body: Column(
         children: [
@@ -91,23 +130,28 @@ class _GoogleMapScreenState extends State<GoogleMapScreen> {
             child: GoogleMap(
               mapType: MapType.hybrid,
               initialCameraPosition: _initialLocation,
-              markers: Set.from(_markers),
+              markers: _showAllMarkers ? _allMarkers : _singleMarker,
               onMapCreated: (GoogleMapController controller) {
                 _controller = controller;
               },
             ),
           ),
-          const SizedBox(
-            height: 20,
-          ),
+          const SizedBox(height: 20),
           Expanded(
             child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: locationList.length,
-                itemBuilder: (BuildContext context, int index) {
-                  return singleLocationContainer(index);
-                }),
-          )
+              shrinkWrap: true,
+              itemCount: locationList.length,
+              itemBuilder: (BuildContext context, int index) {
+                return singleLocationContainer(index);
+              },
+            ),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _resetMarkers,
+            child: const Text('Reset to Show All Markers'),
+          ),
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -118,29 +162,8 @@ class _GoogleMapScreenState extends State<GoogleMapScreen> {
       onTap: () => _add(index),
       child: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: Text("${locationList[index]['name']} " ?? ''),
+        child: Text(locationList[index]['name']),
       ),
     );
-  }
-
-  void _add(int index) {
-    _markers = Iterable.generate(1, (index) {
-      return Marker(
-          markerId: MarkerId(locationList[index]['name']),
-          position: LatLng(
-            locationList[index]['coordinates']['latitude'],
-            locationList[index]['coordinates']['longitude'],
-          ),
-          infoWindow: InfoWindow(title: locationList[index]["name"]));
-    });
-    _controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-      target: LatLng(
-        locationList[index]['coordinates']['latitude'],
-        locationList[index]['coordinates']['longitude'],
-      ),
-    )));
-    setState(() {});
-
-    return;
   }
 }
